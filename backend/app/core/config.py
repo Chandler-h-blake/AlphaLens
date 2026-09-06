@@ -23,7 +23,7 @@ def normalize_database_url(value: str | None) -> str | None:
 
 
 class Settings(BaseSettings):
-    """Runtime settings loaded from environment variables or backend/.env."""
+    """Runtime settings loaded from environment variables or the project-root .env."""
 
     model_config = SettingsConfigDict(
         env_file=PROJECT_DIR / ".env",

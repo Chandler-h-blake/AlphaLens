@@ -50,5 +50,8 @@ class OpenAICompatibleProvider:
 def build_llm_provider(settings: Settings) -> LLMProvider:
     api_key = settings.llm_api_key or os.getenv(settings.llm_api_key_env)
     if settings.llm_provider != "openai_compatible" or not api_key:
-        raise LLMConfigurationError(f"请在 backend/.env 中配置 LLM_PROVIDER=openai_compatible、LLM_API_KEY_ENV={settings.llm_api_key_env}、LLM_BASE_URL 与 LLM_MODEL。")
+        raise LLMConfigurationError(
+            "请在项目根目录 .env 中配置 LLM_PROVIDER=openai_compatible、"
+            f"LLM_API_KEY（或环境变量 {settings.llm_api_key_env}）、LLM_BASE_URL 与 LLM_MODEL。"
+        )
     return OpenAICompatibleProvider(api_key=api_key, base_url=settings.llm_base_url, model=settings.llm_model)

@@ -65,4 +65,4 @@ docker compose exec backend python /app/scripts/refresh_industry.py --database-u
 
 核心接口包括 `/api/market/dashboard`、`/api/market/funds`、`/api/factors/top30`、`/api/factors/refresh`、`/api/research/reports`、`/api/industry/rotation`、`/api/reviews/generate` 和 `/api/system/status`；健康检查为 `/api/health/ready`。
 
-更多架构与面试讲解见 [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md)。
+从零理解整个项目请阅读 [docs/PROJECT_TEXTBOOK.md](docs/PROJECT_TEXTBOOK.md)；精简面试提纲见 [docs/INTERVIEW_GUIDE.md](docs/INTERVIEW_GUIDE.md)。
