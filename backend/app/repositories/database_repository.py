@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import select
 
 from app.core.exceptions import ResourceNotFoundError
-from app.db.models import FactorOverview, FactorScore, IndustryRotation, ResearchReport, Stock
+from app.db.models import FactorOverview, FactorScore, IndustryRotation, ResearchReport, Stock, WorkspaceSnapshot
 from app.db.session import get_session_factory
 from app.repositories.research_repository import ResearchReportRecord
 
@@ -29,8 +29,20 @@ class DatabaseRepository:
         for score, stock in rows:
             if score.data_date != latest_date:
                 continue
-            records.append({"rank": score.rank, "symbol": stock.symbol, "name": stock.name, "industry": stock.industry or "unknown", "composite_score": score.composite_score, **score.factor_values})
+            records.append({"rank": score.rank, "symbol": stock.symbol, "name": stock.name, "industry": stock.industry or "unknown", "composite_score": score.composite_score, "data_date": score.data_date.isoformat(), **score.factor_values})
         return pd.DataFrame(records)
+
+    def get_factor_metadata(self) -> dict | None:
+        with self.session_factory() as session:
+            snapshot = session.get(WorkspaceSnapshot, "factor_refresh")
+            if snapshot is None:
+                return None
+            return {
+                **snapshot.payload,
+                "source": snapshot.source,
+                "as_of": snapshot.as_of,
+                "fetched_at": snapshot.fetched_at,
+            }
 
     def get_overview(self) -> pd.DataFrame:
         with self.session_factory() as session:

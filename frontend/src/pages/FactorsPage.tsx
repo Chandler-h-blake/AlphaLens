@@ -1,7 +1,7 @@
 import { AlertTriangle, RefreshCw, Search, SlidersHorizontal } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { getFactorOverview, getFactorTopPool } from '../api/factors'
+import { getFactorOverview, getFactorRefreshTask, getFactorTopPool, refreshFactors } from '../api/factors'
 import { ApiError } from '../api/client'
 import { FactorScoreChart } from '../components/FactorScoreChart'
 import { FactorTable } from '../components/FactorTable'
@@ -14,6 +14,8 @@ export function FactorsPage() {
   const [overview, setOverview] = useState<FactorOverviewResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -46,7 +48,30 @@ export function FactorsPage() {
   }, [pool])
 
   const topScore = pool?.items[0]?.composite_score
-  const handleRefresh = useCallback(() => setRefreshKey((value) => value + 1), [])
+  const handleReload = useCallback(() => setRefreshKey((value) => value + 1), [])
+
+  async function handleOnlineRefresh() {
+    setIsRefreshing(true)
+    setRefreshMessage('正在抓取 30 只候选股的最新日线并重新计算技术因子…')
+    try {
+      const created = await refreshFactors()
+      for (let attempt = 0; attempt < 120; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const task = await getFactorRefreshTask(created.task_id)
+        if (task.status === 'succeeded') {
+          setRefreshMessage('技术因子已更新，排名已按最新共同交易日重新计算。')
+          setRefreshKey((value) => value + 1)
+          return
+        }
+        if (task.status === 'failed') throw new Error(task.error_message || '在线刷新失败。')
+      }
+      throw new Error('刷新超时，请稍后重新读取页面。')
+    } catch (requestError) {
+      setRefreshMessage(requestError instanceof Error ? `刷新失败，已保留旧排名：${requestError.message}` : '刷新失败，已保留旧排名。')
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   return (
     <div className="page-content">
@@ -54,18 +79,23 @@ export function FactorsPage() {
         <div>
           <p className="eyebrow">MULTI-FACTOR RESEARCH</p>
           <h1>因子选股</h1>
-          <p>基于已验证的多因子快照，筛选综合得分最高的候选股票。</p>
+          <p>用最新交易日技术因子与最近披露的财务因子，对当前研究候选池进行综合排序。</p>
         </div>
-        <button className="icon-button" type="button" onClick={handleRefresh} title="重新读取已导入的因子数据" aria-label="重新读取已导入的因子数据">
-          <RefreshCw size={18} className={isLoading ? 'spin' : undefined} />
+        <button className="generate-button" type="button" onClick={() => void handleOnlineRefresh()} disabled={isRefreshing}>
+          <RefreshCw size={18} className={isRefreshing ? 'spin' : undefined} />
+          {isRefreshing ? '刷新分析中…' : '刷新技术因子'}
         </button>
       </section>
+
+      <div className="market-warning">
+        {refreshMessage ?? '刷新范围：当前 30 只候选股。动量、换手率变化、波动率更新到最新共同交易日；财务因子沿用最近披露值。'}
+      </div>
 
       <section className="metric-grid" aria-label="因子数据摘要">
         <article className="metric-card">
           <span>当前候选池</span>
           <strong>{isLoading ? '...' : pool?.total ?? 0}</strong>
-          <small>符合当前筛选条件的股票</small>
+          <small>{pool?.data_date ? `数据日期 ${pool.data_date}` : '符合当前筛选条件的股票'}</small>
         </article>
         <article className="metric-card">
           <span>最高综合得分</span>
@@ -85,7 +115,7 @@ export function FactorsPage() {
             <div className="panel-icon"><SlidersHorizontal size={18} /></div>
             <div>
               <h2>候选股票池</h2>
-              <span>{pool?.source ?? '加载数据源中...'}</span>
+              <span>{pool ? `${pool.source} · ${pool.calculation_scope}` : '加载数据源中...'}</span>
             </div>
           </div>
           <div className="filters">
@@ -108,7 +138,7 @@ export function FactorsPage() {
           <div className="error-state" role="alert">
             <AlertTriangle size={20} />
             <div><strong>数据加载失败</strong><span>{error}</span></div>
-            <button type="button" onClick={handleRefresh}>重试</button>
+            <button type="button" onClick={handleReload}>重试</button>
           </div>
         ) : isLoading && !pool ? (
           <div className="loading-state">正在读取因子结果...</div>

@@ -13,7 +13,7 @@ from app.schemas.factors import (
 )
 
 
-CORE_COLUMNS = {"rank", "symbol", "name", "industry", "composite_score"}
+CORE_COLUMNS = {"rank", "symbol", "name", "industry", "composite_score", "data_date"}
 
 
 def _optional_number(value: object) -> float | None:
@@ -41,8 +41,13 @@ class FactorService:
         filtered = self._filter_top_pool(frame, keyword=keyword, industry=industry)
         records = filtered.sort_values(["rank", "symbol"]).head(limit).to_dict("records")
         items = [self._to_top_pool_item(record) for record in records]
+        metadata = self.repository.get_factor_metadata() if hasattr(self.repository, "get_factor_metadata") else None
+        data_date = str(frame["data_date"].iloc[0]) if "data_date" in frame and not frame.empty else None
         return FactorTopPoolResponse(
-            source="AlphaLens 因子评分快照",
+            source=metadata["source"] if metadata else "AlphaLens 因子评分快照",
+            data_date=data_date,
+            refreshed_at=metadata.get("fetched_at") if metadata else None,
+            calculation_scope=metadata.get("calculation_scope", "已保存的研究候选池") if metadata else "已保存的研究候选池",
             items=items,
             total=len(filtered),
         )

@@ -40,12 +40,14 @@ class PublicWriteRateLimitMiddleware(BaseHTTPMiddleware):
         enabled: bool,
         market_refresh_limit_per_minute: int,
         report_generation_limit_per_hour: int,
+        factor_refresh_limit_per_hour: int = 2,
     ) -> None:
         super().__init__(app)
         self.enabled = enabled
         self.rules = {
             "market_refresh": (market_refresh_limit_per_minute, 60),
             "report_generation": (report_generation_limit_per_hour, 3600),
+            "factor_refresh": (factor_refresh_limit_per_hour, 3600),
         }
         self.requests: dict[tuple[str, str], deque[float]] = defaultdict(deque)
         self.lock = Lock()
@@ -80,6 +82,8 @@ class PublicWriteRateLimitMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if path in {"/api/market/dashboard", "/api/market/funds", "/api/industry/rotation/refresh"}:
             return "market_refresh"
+        if path == "/api/factors/refresh":
+            return "factor_refresh"
         if path == "/api/reviews/generate":
             return "report_generation"
         if path.startswith("/api/market/stocks/") and path.endswith("/refresh"):

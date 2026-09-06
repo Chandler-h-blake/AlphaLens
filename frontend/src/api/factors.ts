@@ -1,5 +1,5 @@
-import { getJson } from './client'
-import type { FactorOverviewResponse, FactorTopPoolResponse } from '../types/factors'
+import { getJson, postJson } from './client'
+import type { FactorOverviewResponse, FactorRefreshTaskResponse, FactorTopPoolResponse } from '../types/factors'
 
 export function getFactorTopPool(
   params: { keyword?: string; industry?: string; limit?: number },
@@ -15,4 +15,12 @@ export function getFactorTopPool(
 
 export function getFactorOverview(signal?: AbortSignal) {
   return getJson<FactorOverviewResponse>('/factors/overview', signal)
+}
+
+export function refreshFactors() {
+  return postJson<FactorRefreshTaskResponse>('/factors/refresh')
+}
+
+export function getFactorRefreshTask(taskId: string) {
+  return getJson<FactorRefreshTaskResponse>(`/factors/refresh/tasks/${taskId}`)
 }

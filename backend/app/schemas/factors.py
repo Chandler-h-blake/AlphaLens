@@ -1,3 +1,6 @@
+from datetime import date, datetime
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -12,8 +15,19 @@ class FactorTopPoolItem(BaseModel):
 
 class FactorTopPoolResponse(BaseModel):
     source: str
+    data_date: date | None = None
+    refreshed_at: datetime | None = None
+    calculation_scope: str = "已保存的研究候选池"
     items: list[FactorTopPoolItem]
     total: int = Field(ge=0)
+
+
+class FactorRefreshTaskResponse(BaseModel):
+    task_id: str
+    status: Literal["pending", "running", "succeeded", "failed"]
+    created_at: datetime
+    finished_at: datetime | None = None
+    error_message: str | None = None
 
 
 class FactorOverviewItem(BaseModel):

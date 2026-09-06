@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -36,12 +37,22 @@ def test_seed_is_labeled_and_idempotent(tmp_path):
 def test_refresh_failure_preserves_provenance(tmp_path):
     service = DashboardService(setup(tmp_path))
     before = service.get('dashboard')
-    with patch('app.services.dashboard_service.PublicDashboardProvider.fetch', side_effect=RuntimeError('offline')):
+    with patch('app.services.dashboard_service.PublicDashboardProvider.fetch', side_effect=RuntimeError('offline')), patch.object(service, '_fetch_research_pool_dashboard', side_effect=RuntimeError('fallback offline')):
         result = service.refresh('dashboard')
     assert result.data == before.data
     assert result.fetched_at == before.fetched_at
     assert result.source == before.source
     assert result.freshness == 'stale'
+
+
+def test_dashboard_uses_labeled_research_pool_fallback(tmp_path):
+    service = DashboardService(setup(tmp_path))
+    fallback = ({"indexes": [], "industries": [], "distribution": {}, "top_turnover": []}, "候选池备用源", datetime(2026, 9, 4))
+    with patch('app.services.dashboard_service.PublicDashboardProvider.fetch', side_effect=RuntimeError('offline')), patch.object(service, '_fetch_research_pool_dashboard', return_value=fallback):
+        result = service.refresh('dashboard')
+    assert result.freshness == 'fresh'
+    assert result.source == '候选池备用源'
+    assert '30 只研究候选股' in result.warning
 
 
 def test_missing_key_never_creates_task(tmp_path):

@@ -173,7 +173,7 @@ class ResearchGenerationService:
 - 主力净流入：{market_snapshot.main_net_inflow}
 - 公告与资讯标题：
 {announcements}"""
-        return f"""请根据下列结构化多因子数据，生成一份中文 Markdown 投研更新。\n\n股票代码：{item.symbol}\n股票名称：{item.name}\n行业：{item.industry}\n多因子排名：{item.rank}\n综合得分：{item.composite_score:.4f}\n因子原始值：{item.factor_values}\n\n{market_context}\n\n要求：\n1. 仅使用给定数据，不编造新闻、财务事实或价格预测。\n2. 若提供在线市场快照，只能陈述其价格、资金流与公告标题，不可从标题推断公告正文或影响。\n3. 包含“因子观察”“市场快照”“风险与限制”“后续跟踪”四个二级标题；无在线市场快照时，在“市场快照”说明数据暂缺。\n4. 明确说明因子数据来自历史课程项目结果，在线快照也可能存在供应商延迟。\n5. 结尾写明“仅供研究学习，不构成投资建议”。"""
+        return f"""请根据下列结构化多因子数据，生成一份中文 Markdown 投研更新。\n\n股票代码：{item.symbol}\n股票名称：{item.name}\n行业：{item.industry}\n多因子排名：{item.rank}\n综合得分：{item.composite_score:.4f}\n因子原始值：{item.factor_values}\n\n{market_context}\n\n要求：\n1. 仅使用给定数据，不编造新闻、财务事实或价格预测。\n2. 若提供在线市场快照，只能陈述其价格、资金流与公告标题，不可从标题推断公告正文或影响。\n3. 包含“因子观察”“市场快照”“风险与限制”“后续跟踪”四个二级标题；无在线市场快照时，在“市场快照”说明数据暂缺。\n4. 明确说明因子数据来自平台保存的研究快照，在线数据也可能存在供应商延迟。\n5. 结尾写明“仅供研究学习，不构成投资建议”。"""
 
     @staticmethod
     def _to_task_response(task: StoredTask) -> GenerationTaskResponse:

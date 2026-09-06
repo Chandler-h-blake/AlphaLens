@@ -16,7 +16,7 @@ BACKEND_DIR = ROOT / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
 from app.db.base import Base  # noqa: E402
-from app.db.models import FactorOverview, FactorScore, IndustryRotation, ResearchReport, Stock  # noqa: E402
+from app.db.models import FactorOverview, FactorScore, IndustryRotation, ResearchReport, Stock, WorkspaceSnapshot  # noqa: E402
 from app.db.session import get_engine, get_session_factory  # noqa: E402
 from app.repositories.industry_repository import IndustryRepository  # noqa: E402
 from app.repositories.research_repository import ResearchRepository  # noqa: E402
@@ -82,6 +82,7 @@ def main() -> int:
             # Historical refreshes must not erase reports created by the LLM workflow.
             for model in (IndustryRotation, FactorOverview, FactorScore):
                 session.execute(delete(model))
+            session.execute(delete(WorkspaceSnapshot).where(WorkspaceSnapshot.key == "factor_refresh"))
         existing_source_files = set(session.scalars(select(ResearchReport.source_file)).all())
         for record in top_pool.to_dict("records"):
             symbol = str(record["symbol"]).zfill(6)

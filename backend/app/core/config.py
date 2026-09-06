@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     public_write_rate_limit_enabled: bool = True
     market_refresh_limit_per_minute: int = 12
     report_generation_limit_per_hour: int = 3
+    factor_refresh_limit_per_hour: int = 2
 
     @field_validator("database_url")
     @classmethod

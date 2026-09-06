@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 
-from app.schemas.factors import FactorOverviewResponse, FactorTopPoolResponse
+from app.schemas.factors import FactorOverviewResponse, FactorRefreshTaskResponse, FactorTopPoolResponse
+from app.services.factor_refresh_service import FactorRefreshService
 from app.services.factor_service import FactorService
 
 
@@ -30,3 +31,12 @@ def get_top30(
 def get_overview(service: FactorServiceDependency) -> FactorOverviewResponse:
     return service.get_overview()
 
+
+@router.post("/refresh", response_model=FactorRefreshTaskResponse, summary="创建候选池技术因子刷新任务")
+def refresh_factors(background_tasks: BackgroundTasks) -> FactorRefreshTaskResponse:
+    return FactorRefreshService().create(background_tasks)
+
+
+@router.get("/refresh/tasks/{task_id}", response_model=FactorRefreshTaskResponse, summary="查询因子刷新任务")
+def get_refresh_task(task_id: str) -> FactorRefreshTaskResponse:
+    return FactorRefreshService().get(task_id)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 from typing import Protocol
 from urllib.parse import urljoin
@@ -46,6 +46,14 @@ class FetchedAnnouncement:
     source: str = "东方财富网 · 巨潮公告"
 
 
+@dataclass(frozen=True)
+class DailyBar:
+    trading_date: date
+    close: float
+    turnover_rate: float
+    source: str = "东方财富前复权日线"
+
+
 class MarketDataProvider(Protocol):
     def fetch_quote(self, symbol: str) -> FetchedQuote: ...
 
@@ -53,7 +61,7 @@ class MarketDataProvider(Protocol):
 
 
 class EastMoneyPublicProvider:
-    """Small, dependency-free adapter for the public endpoints used in the prior internship work."""
+    """Small, dependency-free adapter for the application's public market endpoints."""
 
     def __init__(self, settings: Settings, transport: httpx.BaseTransport | None = None) -> None:
         self.timeout_seconds = settings.market_data_timeout_seconds
@@ -91,6 +99,26 @@ class EastMoneyPublicProvider:
             main_net_inflow=_number(data.get("f140")),
             as_of=_market_datetime(data.get("f124")),
         )
+
+    def fetch_index_quote(self, provider_code: str) -> dict[str, float | str | datetime]:
+        """Fetch a major-index quote from the Tencent fallback endpoint."""
+        url = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+        try:
+            with self._client() as client:
+                response = client.get(url, params={"param": f"{provider_code},day,,,5,qfq"})
+                response.raise_for_status()
+                values = response.json().get("data", {}).get(provider_code, {}).get("qt", {}).get(provider_code, [])
+        except (httpx.HTTPError, ValueError, AttributeError) as error:
+            raise MarketDataProviderError(f"{provider_code} 指数行情请求失败：{error}") from error
+        if not isinstance(values, list) or len(values) < 33:
+            raise MarketDataProviderError(f"{provider_code} 指数行情字段不完整。")
+        latest, change_percent = _number(values[3]), _number(values[32])
+        if latest is None or change_percent is None:
+            raise MarketDataProviderError(f"{provider_code} 指数行情数值无效。")
+        return {
+            "name": str(values[1]), "value": latest, "change_percent": change_percent,
+            "as_of": _parse_tencent_datetime(values[30]),
+        }
 
     def fetch_announcements(self, symbol: str, limit: int) -> list[FetchedAnnouncement]:
         normalized = _normalize_symbol(symbol)
@@ -134,6 +162,76 @@ class EastMoneyPublicProvider:
                 )
             )
         return records or self._fetch_sina_news(normalized, limit)
+
+    def fetch_daily_history(self, symbol: str, limit: int = 90) -> list[DailyBar]:
+        """Fetch adjusted daily bars used by the market-sensitive factor refresh."""
+        normalized = _normalize_symbol(symbol)
+        url = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+        params = {
+            "secid": _security_id(normalized),
+            "klt": "101",
+            "fqt": "1",
+            "lmt": str(max(limit, 70)),
+            "end": "20500101",
+            "fields1": "f1,f2,f3,f4,f5,f6",
+            "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61",
+        }
+        try:
+            with self._client() as client:
+                response = client.get(url, params=params)
+                response.raise_for_status()
+                lines = response.json().get("data", {}).get("klines", [])
+        except (httpx.HTTPError, ValueError, AttributeError):
+            return self._fetch_tencent_daily_history(normalized, limit)
+        records: list[DailyBar] = []
+        for line in lines if isinstance(lines, list) else []:
+            fields = str(line).split(",")
+            if len(fields) < 11:
+                continue
+            close, turnover = _number(fields[2]), _number(fields[10])
+            try:
+                trading_date = date.fromisoformat(fields[0])
+            except ValueError:
+                continue
+            if close is not None and close > 0 and turnover is not None and turnover >= 0:
+                records.append(DailyBar(trading_date=trading_date, close=close, turnover_rate=turnover))
+        records = sorted({item.trading_date: item for item in records}.values(), key=lambda item: item.trading_date)
+        if len(records) < 61:
+            return self._fetch_tencent_daily_history(normalized, limit)
+        return records
+
+    def _fetch_tencent_daily_history(self, symbol: str, limit: int) -> list[DailyBar]:
+        """Use volume ratios as turnover-rate ratios; circulating shares cancel in the ratio."""
+        market_prefix = "sh" if symbol.startswith("6") else "sz"
+        url = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+        try:
+            with self._client() as client:
+                response = client.get(url, params={"param": f"{market_prefix}{symbol},day,,,{max(limit, 70)},qfq"})
+                response.raise_for_status()
+                payload = response.json().get("data", {}).get(f"{market_prefix}{symbol}", {})
+                lines = payload.get("qfqday") or payload.get("day") or []
+        except (httpx.HTTPError, ValueError, AttributeError) as error:
+            raise MarketDataProviderError(f"{symbol} 日线主源和备用源均不可用：{error}") from error
+        records = []
+        for fields in lines if isinstance(lines, list) else []:
+            if not isinstance(fields, list) or len(fields) < 6:
+                continue
+            close, volume = _number(fields[2]), _number(fields[5])
+            try:
+                trading_date = date.fromisoformat(str(fields[0]))
+            except ValueError:
+                continue
+            if close is not None and close > 0 and volume is not None and volume >= 0:
+                records.append(
+                    DailyBar(
+                        trading_date=trading_date, close=close, turnover_rate=volume,
+                        source="腾讯财经前复权日线（成交量比率代理换手率变化）",
+                    )
+                )
+        records = sorted({item.trading_date: item for item in records}.values(), key=lambda item: item.trading_date)
+        if len(records) < 61:
+            raise MarketDataProviderError(f"{symbol} 主源和备用源的有效日线均不足 61 个交易日。")
+        return records
 
     def _fetch_tencent_quote(self, symbol: str) -> FetchedQuote:
         market_prefix = "sh" if symbol.startswith("6") else "sz"
@@ -223,6 +321,9 @@ class DisabledMarketDataProvider:
         raise MarketDataProviderError("在线行情服务未启用。")
 
     def fetch_announcements(self, symbol: str, limit: int) -> list[FetchedAnnouncement]:
+        raise MarketDataProviderError("在线行情服务未启用。")
+
+    def fetch_daily_history(self, symbol: str, limit: int = 90) -> list[DailyBar]:
         raise MarketDataProviderError("在线行情服务未启用。")
 
 

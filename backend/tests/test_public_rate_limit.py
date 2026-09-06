@@ -21,6 +21,9 @@ def test_rate_limit_rules_only_match_expensive_write_endpoints() -> None:
     Request.url.path = "/api/market/stocks/002558/refresh"
     assert PublicWriteRateLimitMiddleware._rule_name(Request()) == "market_refresh"
 
+    Request.url.path = "/api/factors/refresh"
+    assert PublicWriteRateLimitMiddleware._rule_name(Request()) == "factor_refresh"
+
     Request.method = "GET"
     assert PublicWriteRateLimitMiddleware._rule_name(Request()) is None
 

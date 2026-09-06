@@ -9,8 +9,19 @@ export interface FactorTopPoolItem {
 
 export interface FactorTopPoolResponse {
   source: string
+  data_date: string | null
+  refreshed_at: string | null
+  calculation_scope: string
   items: FactorTopPoolItem[]
   total: number
+}
+
+export interface FactorRefreshTaskResponse {
+  task_id: string
+  status: 'pending' | 'running' | 'succeeded' | 'failed'
+  created_at: string
+  finished_at: string | null
+  error_message: string | null
 }
 
 export interface FactorOverviewItem {

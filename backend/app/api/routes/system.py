@@ -14,7 +14,7 @@ router = APIRouter()
 @router.get("/status", response_model=SystemStatusResponse)
 def get_status() -> SystemStatusResponse:
     settings = get_settings()
-    snapshots: dict[str, datetime | None] = {"dashboard": None, "funds": None}
+    snapshots: dict[str, datetime | None] = {"dashboard": None, "funds": None, "factor_refresh": None}
     ready = bool(settings.database_url)
     if settings.database_url:
         with get_session_factory(settings.database_url)() as session:

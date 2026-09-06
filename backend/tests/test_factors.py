@@ -9,7 +9,7 @@ def test_top_pool_returns_ranked_factor_data() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["source"] == "AlphaLens 因子评分快照"
+    assert payload["source"]
     assert payload["total"] >= 1
     assert payload["items"][0]["rank"] == 1
     assert payload["items"][0]["symbol"] == "002558"

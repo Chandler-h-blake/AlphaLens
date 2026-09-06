@@ -4,13 +4,13 @@ from tests.api_client import ApiClient
 client = ApiClient()
 
 
-def test_reports_list_seed_markdown_reports() -> None:
+def test_reports_list_persisted_markdown_reports() -> None:
     response = client.get("/api/research/reports")
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["total"] == 5
-    assert payload["items"][0]["symbol"] in {"002466", "002558", "002709", "300308", "603986"}
+    assert payload["total"] >= 5
+    assert any(item["symbol"] == "002558" for item in payload["items"])
 
 
 def test_report_detail_returns_sources_and_markdown() -> None:
@@ -19,8 +19,8 @@ def test_report_detail_returns_sources_and_markdown() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["name"] == "巨人网络"
-    assert "多 Agent 深度投研报告" in payload["content_markdown"]
-    assert len(payload["sources"]) == 2
+    assert payload["content_markdown"].startswith("#")
+    assert payload["sources"]
     assert "不构成投资建议" in payload["disclaimer"]
 
 

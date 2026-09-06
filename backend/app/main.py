@@ -43,6 +43,7 @@ app.add_middleware(
     enabled=settings.public_write_rate_limit_enabled,
     market_refresh_limit_per_minute=settings.market_refresh_limit_per_minute,
     report_generation_limit_per_hour=settings.report_generation_limit_per_hour,
+    factor_refresh_limit_per_hour=settings.factor_refresh_limit_per_hour,
 )
 # Middleware added last is outermost in Starlette, so it also decorates early 429 responses.
 app.add_middleware(RequestContextMiddleware)

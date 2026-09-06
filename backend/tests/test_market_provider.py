@@ -1,4 +1,5 @@
 import json
+from datetime import date, timedelta
 
 import httpx
 
@@ -42,3 +43,42 @@ def test_announcements_fall_back_to_sina_news_when_eastmoney_fails() -> None:
     assert len(announcements) == 1
     assert announcements[0].title == "巨人网络发布新公告"
     assert announcements[0].category == "个股资讯"
+
+
+def test_daily_history_parses_close_and_turnover() -> None:
+    start = date(2026, 1, 1)
+    lines = [
+        f"{start + timedelta(days=index)},10,{10 + index / 10},11,9,1000,10000,2,1,.1,{1 + index / 100}"
+        for index in range(70)
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.host == "push2his.eastmoney.com"
+        return httpx.Response(200, json={"data": {"klines": lines}}, request=request)
+
+    provider = EastMoneyPublicProvider(Settings(), transport=httpx.MockTransport(handler))
+    bars = provider.fetch_daily_history("002558")
+
+    assert len(bars) == 70
+    assert bars[-1].close == 16.9
+    assert bars[-1].turnover_rate == 1.69
+
+
+def test_daily_history_falls_back_to_tencent_volume_ratio() -> None:
+    start = date(2026, 1, 1)
+    lines = [
+        [(start + timedelta(days=index)).isoformat(), "10", str(10 + index / 10), "11", "9", str(1000 + index)]
+        for index in range(70)
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.host == "push2his.eastmoney.com":
+            return httpx.Response(503, request=request)
+        return httpx.Response(200, json={"data": {"sz002558": {"qfqday": lines}}}, request=request)
+
+    provider = EastMoneyPublicProvider(Settings(), transport=httpx.MockTransport(handler))
+    bars = provider.fetch_daily_history("002558")
+
+    assert len(bars) == 70
+    assert bars[-1].turnover_rate == 1069
+    assert "成交量比率" in bars[-1].source
