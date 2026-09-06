@@ -1,0 +1,10 @@
+{
+  "northbound": {"net_inflow": 1840000000, "label": "北向资金净流入"},
+  "main_flow": [
+    {"name": "电子", "net_inflow": 1260000000},
+    {"name": "通信", "net_inflow": 930000000},
+    {"name": "电力设备", "net_inflow": 520000000},
+    {"name": "银行", "net_inflow": -410000000},
+    {"name": "房地产", "net_inflow": -680000000}
+  ]
+}

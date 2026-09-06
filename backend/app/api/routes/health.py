@@ -1,0 +1,36 @@
+from fastapi import APIRouter
+from sqlalchemy import text
+
+from app.core.config import get_settings
+from app.core.exceptions import DataSourceError
+from app.db.session import get_session_factory
+from app.schemas.health import HealthResponse, ReadinessResponse
+
+
+router = APIRouter()
+
+
+@router.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse, summary="检查 API 服务状态")
+def get_health() -> HealthResponse:
+    settings = get_settings()
+    return HealthResponse(status="ok", environment=settings.app_env)
+
+
+@router.api_route("/health/live", methods=["GET", "HEAD"], response_model=HealthResponse, summary="检查 API 进程是否存活")
+def get_liveness() -> HealthResponse:
+    return get_health()
+
+
+@router.api_route("/health/ready", methods=["GET", "HEAD"], response_model=ReadinessResponse, summary="检查 API 与数据库是否就绪")
+def get_readiness() -> ReadinessResponse:
+    settings = get_settings()
+    if settings.data_backend != "database":
+        return ReadinessResponse(status="ok", environment=settings.app_env, database="not_required")
+    if not settings.database_url:
+        raise DataSourceError("DATA_BACKEND=database 时未配置 DATABASE_URL。")
+    try:
+        with get_session_factory(settings.database_url)() as session:
+            session.execute(text("SELECT 1"))
+    except Exception as error:
+        raise DataSourceError(f"数据库尚未就绪：{error}") from error
+    return ReadinessResponse(status="ok", environment=settings.app_env, database="ok")

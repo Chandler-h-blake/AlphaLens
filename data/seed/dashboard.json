@@ -1,0 +1,19 @@
+{
+  "indexes": [
+    {"name": "上证指数", "value": 3421.21, "change_percent": 0.42},
+    {"name": "深证成指", "value": 10866.32, "change_percent": 0.71},
+    {"name": "创业板指", "value": 2244.88, "change_percent": 1.16},
+    {"name": "科创50", "value": 1038.56, "change_percent": 0.63}
+  ],
+  "industries": [
+    {"name": "通信", "change_percent": 2.46}, {"name": "电子", "change_percent": 1.84}, {"name": "电力设备", "change_percent": 1.22}, {"name": "医药生物", "change_percent": 0.66}, {"name": "食品饮料", "change_percent": 0.24}, {"name": "银行", "change_percent": -0.18}, {"name": "房地产", "change_percent": -0.74}, {"name": "煤炭", "change_percent": -1.06}
+  ],
+  "distribution": {"up": 2864, "down": 2011, "flat": 312, "limit_up": 57, "limit_down": 11},
+  "top_turnover": [
+    {"symbol": "300308", "name": "中际旭创", "change_percent": 2.31, "amount": 5240000000},
+    {"symbol": "300750", "name": "宁德时代", "change_percent": 1.04, "amount": 4810000000},
+    {"symbol": "600519", "name": "贵州茅台", "change_percent": -0.22, "amount": 4160000000},
+    {"symbol": "002594", "name": "比亚迪", "change_percent": 0.87, "amount": 3980000000},
+    {"symbol": "603986", "name": "兆易创新", "change_percent": 3.18, "amount": 3620000000}
+  ]
+}
