@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from app.repositories.research_repository import ResearchRepository
 from tests.api_client import ApiClient
 
 
@@ -29,3 +32,12 @@ def test_report_detail_returns_404_when_report_is_absent() -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "RESOURCE_NOT_FOUND"
+
+
+def test_repository_ignores_macos_metadata_files(tmp_path: Path) -> None:
+    (tmp_path / "000001_示例_report.md").write_text("# 示例研究报告", encoding="utf-8")
+    (tmp_path / "._000001_示例_report.md").write_bytes(b"macOS metadata")
+
+    reports = ResearchRepository(tmp_path).list_reports()
+
+    assert [report.symbol for report in reports] == ["000001"]

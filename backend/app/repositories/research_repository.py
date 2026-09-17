@@ -34,7 +34,12 @@ class ResearchRepository:
     def list_reports(self) -> list[ResearchReportRecord]:
         if not self.reports_dir.exists():
             raise DataSourceError(f"未找到研究报告目录：{self.reports_dir}")
-        reports = [self._parse_file(path) for path in self.reports_dir.glob("*_report.md")]
+        report_paths = (
+            path
+            for path in self.reports_dir.glob("*_report.md")
+            if not path.name.startswith("._")
+        )
+        reports = [self._parse_file(path) for path in report_paths]
         return sorted(reports, key=lambda item: item.generated_at or datetime.min, reverse=True)
 
     def get_report(self, symbol: str) -> ResearchReportRecord:

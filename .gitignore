@@ -1,8 +1,11 @@
 .env
 .venv/
+.pytest-*/
 __pycache__/
 *.py[cod]
 node_modules/
 frontend/dist/
 postgres_data/
 .DS_Store
+._*
+**/._*

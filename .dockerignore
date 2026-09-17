@@ -1,5 +1,7 @@
 .git
 .DS_Store
+._*
+**/._*
 **/.env
 **/.env.*
 backend/.venv
