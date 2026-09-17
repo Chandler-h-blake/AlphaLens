@@ -1,8 +1,9 @@
-import { BarChart3, Database, FileText, LayoutDashboard, Sparkles, TrendingUp, WalletCards, Scale, Settings, ClipboardCheck } from 'lucide-react'
+import { BarChart3, Database, FileText, LayoutDashboard, Search, Sparkles, TrendingUp, WalletCards, Scale, Settings, ClipboardCheck } from 'lucide-react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 const navItems = [
   { label: '市场概览', to: '/dashboard', icon: LayoutDashboard },
+  { label: '在线市场', to: '/market', icon: Search },
   { label: '因子选股', to: '/factors', icon: BarChart3 },
   { label: 'AI 研究报告', to: '/research', icon: FileText },
   { label: '资金监控', to: '/funds', icon: WalletCards },

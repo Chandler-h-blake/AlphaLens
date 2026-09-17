@@ -10,18 +10,21 @@ from app.schemas.health import HealthResponse, ReadinessResponse
 router = APIRouter()
 
 
-@router.api_route("/health", methods=["GET", "HEAD"], response_model=HealthResponse, summary="检查 API 服务状态")
+@router.get("/health", response_model=HealthResponse, summary="检查 API 服务状态")
+@router.head("/health", include_in_schema=False)
 def get_health() -> HealthResponse:
     settings = get_settings()
     return HealthResponse(status="ok", environment=settings.app_env)
 
 
-@router.api_route("/health/live", methods=["GET", "HEAD"], response_model=HealthResponse, summary="检查 API 进程是否存活")
+@router.get("/health/live", response_model=HealthResponse, summary="检查 API 进程是否存活")
+@router.head("/health/live", include_in_schema=False)
 def get_liveness() -> HealthResponse:
     return get_health()
 
 
-@router.api_route("/health/ready", methods=["GET", "HEAD"], response_model=ReadinessResponse, summary="检查 API 与数据库是否就绪")
+@router.get("/health/ready", response_model=ReadinessResponse, summary="检查 API 与数据库是否就绪")
+@router.head("/health/ready", include_in_schema=False)
 def get_readiness() -> ReadinessResponse:
     settings = get_settings()
     if settings.data_backend != "database":

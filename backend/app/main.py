@@ -28,6 +28,9 @@ app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
     description="为 AlphaLens 前端提供市场快照、因子选股、行业轮动和 AI 研究任务接口。",
+    docs_url=f"{settings.api_prefix}/docs",
+    redoc_url=f"{settings.api_prefix}/redoc",
+    openapi_url=f"{settings.api_prefix}/openapi.json",
     lifespan=lifespan,
 )
 

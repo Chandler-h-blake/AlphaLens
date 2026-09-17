@@ -35,3 +35,12 @@ def test_health_endpoints_support_head_requests() -> None:
 
     assert response.status_code == 200
     assert response.content == b""
+
+
+def test_api_documentation_is_available_under_the_proxied_prefix() -> None:
+    docs = client.get("/api/docs")
+    schema = client.get("/api/openapi.json")
+
+    assert docs.status_code == 200
+    assert schema.status_code == 200
+    assert schema.json()["info"]["title"] == "AlphaLens AI Research Platform API"
